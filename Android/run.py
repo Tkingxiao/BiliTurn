@@ -31,7 +31,7 @@ def merge_video(audio_path, video_path, temp_output_path, ffmpeg_exe_path):
         '-i', video_path,
         '-c', 'copy',
         '-y',
-        temp_output_path
+        str(temp_output_path)  # 确保是字符串
     ]
     subprocess.run(command, check=True)
 
@@ -57,24 +57,25 @@ def process_files(input_folder_path, output_dir):
                 if os.path.exists(entry_json_path):
                     with open(entry_json_path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
-                        title = data.get('title', '')
-                        if title:
-                            sanitized_title = sanitize_filename(title)
-                            base_output_video_name = sanitized_title + '.mp4'
-                            output_video_name = base_output_video_name
-                            prefix = 1
-                            while output_video_name in seen_titles or (output_dir / output_video_name).exists():
-                                prefix += 1
-                                output_video_name = f"P{prefix} {base_output_video_name}"
-
-                            seen_titles.add(output_video_name)
-                            temp_output_path = os.path.join(dir_path, 'temp.mp4')
-                            audio_path = os.path.join(dir_path, '16', 'audio.m4s')
-                            video_path = os.path.join(dir_path, '16', 'video.m4s')
-
-                            if os.path.exists(audio_path) and os.path.exists(video_path):
+                        download_subtitle = data.get('page_data', {}).get('download_subtitle', '')  # 从page_data中提取download_subtitle
+                        if download_subtitle:
+                            sanitized_title = sanitize_filename(download_subtitle)
+                            temp_output_path = os.path.join(dir_path, f"{sanitized_title}.mp4")  # 将sanitized_title赋值给temp.mp4
+                            
+                            # 查找包含音频和视频文件的子文件夹
+                            audio_path = None
+                            video_path = None
+                            for sub_dir in os.listdir(dir_path):
+                                sub_dir_path = os.path.join(dir_path, sub_dir)
+                                if os.path.isdir(sub_dir_path):
+                                    if audio_path is None and os.path.exists(os.path.join(sub_dir_path, 'audio.m4s')):
+                                        audio_path = os.path.join(sub_dir_path, 'audio.m4s')
+                                    if video_path is None and os.path.exists(os.path.join(sub_dir_path, 'video.m4s')):
+                                        video_path = os.path.join(sub_dir_path, 'video.m4s')
+                            
+                            if audio_path and video_path:
                                 merge_video(audio_path, video_path, temp_output_path, str(ffmpeg_exe_path))
-                                final_output_path = output_dir / output_video_name
+                                final_output_path = output_dir / f"{sanitized_title}.mp4"
                                 shutil.move(temp_output_path, str(final_output_path))
                                 copy_file_metadata(video_path, str(final_output_path))
                             else:
