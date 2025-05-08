@@ -57,9 +57,9 @@ def process_files(input_folder_path, output_dir):
                 if os.path.exists(entry_json_path):
                     with open(entry_json_path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
-                        download_subtitle = data.get('page_data', {}).get('download_subtitle', '')  # 从page_data中提取download_subtitle
-                        if download_subtitle:
-                            sanitized_title = sanitize_filename(download_subtitle)
+                        part = data.get('page_data', {}).get('part', '')  # 从page_data中提取part
+                        if part:
+                            sanitized_title = sanitize_filename(part)
                             temp_output_path = os.path.join(dir_path, f"{sanitized_title}.mp4")  # 将sanitized_title赋值给temp.mp4
                             
                             # 查找包含音频和视频文件的子文件夹
